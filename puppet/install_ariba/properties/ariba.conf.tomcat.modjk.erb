@@ -1,0 +1,12 @@
+LoadModule jk_module modules/mod_jk.so
+JkWorkersFile conf.d/workers.properties
+JkMount /Sourcing/* asmloadbalancer
+JkMount /jkstatus/ status1
+
+Alias /AribaASM/ <%= @ARIBA_BASE %>/WebComponents/
+
+<Directory <%= @ARIBA_BASE %>/WebComponents/>
+  Options All Indexes
+  Order allow,deny
+  Allow from all
+</Directory>

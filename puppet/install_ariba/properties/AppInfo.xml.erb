@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+
+This file stores Application specific information that allows various
+applications to communicate with one another. 
+
+--><!DOCTYPE AppInfo SYSTEM "../../etc/dtds/AppInfo.dtd">
+<AppInfo Version="3.0">
+   <Instance name="AribaNetwork">
+      <Param name="Type" value="Ariba Supplier Network"/>
+      <Param name="IncomingHttpServerURL" value="https://service.ariba.com/service/transaction/cxml.asp"/>
+      <Param name="NetworkId" value="AN01000000001"/>
+      <Param name="AribaNetworkUserId" value="sysadmin@ariba.com"/>
+      <Param name="AuthMode" value="Self"/>
+      <Param name="Version" value="AN40"/>
+   </Instance>
+   <Param encrypted="true" name="ASMSharedSecret" value="{DESede}3vB66aQl5EU="/>
+   <CommonNetworkCredential domain="NetworkId" identity="">
+        <Param encrypted="true" name="SharedSecret" value="{DESede}3vB66aQl5EU="/>
+   </CommonNetworkCredential>
+   <Param name="CXMLSource" value="http://xml.cxml.org/schemas/cXML/1.2.019"/>
+   <Param name="AuthResolver" value=""/>
+<Instance name="ACM">
+  <Param name="IncomingHttpServerURL" value="http://<%= @ARIBA_HOST %>"/>
+  <Param name="CXMLServletName" value="cxmlchannel"/>
+  <Param name="Type" value="ACM"/>
+  <Param name="AuthIds" value="base,IntegratedRealm:SourcingSupplierUser"/>
+  <Param name="InternalURL" value="http://<%= @ARIBA_HOST %>"/>
+  <Param name="Version" value="9r1"/>
+  <Param name="ContextRoot" value="Sourcing"/>
+</Instance>
+</AppInfo>

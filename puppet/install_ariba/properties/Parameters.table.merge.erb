@@ -1,0 +1,23 @@
+{
+  System = {
+    Base = {
+      ASMSharedRoot = "<%= @ARIBA_ROOT %>/shared";
+      ResourceURL = "/AribaASM";
+    }
+    Debug = {
+      Debug = true;
+      Fields = true;
+      Groups = true;
+      ReReadFile = true;
+      SMTPAddressRedirect="ariba@<%= @ARIBA_HOST %>";
+    }
+    Inspector = {
+      DebugPassword = "debug"
+      ReadOnlyPassword = "readonly"
+      AdminPassword = "admin"
+    }
+    J2EEServer = {
+        InUse = tomcat;
+    }
+  }
+}

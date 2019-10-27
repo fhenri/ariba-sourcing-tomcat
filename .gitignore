@@ -1,0 +1,4 @@
+.vagrant
+puppet/modules/oracledb/files/database/
+puppet/modules/oracledb/files/examples
+puppet/install_ariba/Upstream-9r2

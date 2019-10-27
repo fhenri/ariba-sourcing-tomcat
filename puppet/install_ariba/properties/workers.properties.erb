@@ -1,0 +1,14 @@
+worker.list = asmloadbalancer, status1
+worker.asmloadbalancer.balance_workers = asmserver1
+# , asmserver2, .
+worker.asmloadbalancer.type = lb
+worker.asmloadbalancer.sticky_session = 1
+worker.status1.type = status
+
+## asmserver1 config
+worker.asmserver1.type
+worker.asmserver1.type = ajp13
+worker.asmserver1.host = <%= @ARIBA_HOST %>
+worker.asmserver1.port = 8009
+worker.asmserver1.lbfactor = 10
+

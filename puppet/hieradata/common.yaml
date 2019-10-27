@@ -1,0 +1,12 @@
+---
+host_db_address:  "192.168.180.51"
+host_app_address: "192.168.180.52"
+
+db_hostname:      "asmtomcat.db"
+
+ariba_user:       "ariba"
+ariba_hostname:   "asmtomcat.local"
+ariba_version:    "9r2"
+ariba_sp:         "sourcing_9.2_sp27.jar"
+
+tomcat_version:   "tomcat8"

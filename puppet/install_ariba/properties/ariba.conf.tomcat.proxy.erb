@@ -1,0 +1,40 @@
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_ajp_module modules/mod_proxy_ajp.so
+LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so
+LoadModule slotmem_shm_module modules/mod_slotmem_shm.so
+
+<Location "/balancer-manager">
+   SetHandler balancer-manager
+   Order deny,allow
+   Deny from all
+   Allow from all
+</Location>
+ProxyPass /balancer-manager !
+
+<Location /server-status>
+   SetHandler server-status
+   Order Deny,Allow
+   Deny from all
+   Allow from all
+</Location> 
+ProxyPass /server-status !
+
+<Proxy balancer://SourcingCluster>
+  BalancerMember ajp://localhost:8009 loadfactor=1 route=buyer1 lbset=0
+#  BalancerMember ajp://localhost:8019 loadfactor=1 route=buyer2 lbset=0
+</Proxy>
+
+<Location /Sourcing>
+   Allow From All
+   ProxyPass balancer://SourcingCluster/Sourcing stickysession=JSESSIONID lbmethod=byrequests 
+</Location>
+
+Alias /AribaASM/ <%= @ARIBA_BASE %>/WebComponents/
+
+<Directory <%= @ARIBA_BASE %>/WebComponents/>
+  Options All Indexes
+  Order allow,deny
+  Allow from all
+</Directory>

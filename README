@@ -1,0 +1,5 @@
+This will work with 1 node
+  2nd Tomcat is installed but conf/server.xml needs to be updated
+  httpd/conf.d/ariba.conf needs to be updated
+
+  
