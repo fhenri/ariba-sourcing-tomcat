@@ -226,7 +226,7 @@ function phase_aes_kill() {
 }
 
 function phase_aes_ptable() {
-    mv $AES_CONF/ParametersFix.table.merge $AES_SERVER_HOME/config/ParametersFix.table.merge
+    cp $AES_CONF/ParametersFix.table.merge $AES_SERVER_HOME/config/ParametersFix.table.merge
     cd $AES_SERVER_HOME 
     run_cmd_err bin/tableedit -script $AES_CONF/script.table
     rm $AES_SERVER_HOME/config/ParametersFix.table.merge

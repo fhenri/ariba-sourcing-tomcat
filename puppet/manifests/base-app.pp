@@ -14,7 +14,7 @@ $ARIBA_BASE        = "$ARIBA_ROOT/Sourcing"
 $ARIBA_SERVER      = "$ARIBA_BASE/Server"
 
 $AES_INST_UPSTREAM = "$ARIBA_INST/Upstream-$ARIBA_VERSION"
-$AES_INST_PROPS    = "$ARIBA_INST/properties"
+$AES_CONF_TEMPL    = "$ARIBA_INST/conf.template"
 
 Package {
   allow_virtual => true,
@@ -134,19 +134,19 @@ class ariba {
 
     "$ARIBA_CONF/script.table":
       require => File["$ARIBA_CONF"],
-      source  => "$AES_INST_PROPS/script.table";
+      source  => "$AES_CONF_TEMPL/script.table";
 
     "$ARIBA_CONF/ParametersFix.table.merge":
       require => File["$ARIBA_CONF"],
-      content => template("$AES_INST_PROPS/Parameters.table.merge.erb");
+      content => template("$AES_CONF_TEMPL/Parameters.table.merge.erb");
 
     "$ARIBA_CONF/sp-upstream-installer.properties":
       require => File["$ARIBA_CONF"],
-      content => template("$AES_INST_PROPS/sp-upstream-installer.properties.erb");
+      content => template("$AES_CONF_TEMPL/sp-upstream-installer.properties.erb");
 
     "$ARIBA_CONF/upstream-installer.properties":
       require => File["$ARIBA_CONF"],
-      content => template("$AES_INST_PROPS/upstream-installer.properties.erb");
+      content => template("$AES_CONF_TEMPL/upstream-installer.properties.erb");
 
     "$ARIBA_ROOT/shared":
       ensure  => 'directory',
@@ -159,7 +159,7 @@ class ariba {
 
     "$ARIBA_ROOT/shared/config/asmshared/AppInfo.xml":
       require => File["$ARIBA_ROOT/shared"],
-      content => template("$AES_INST_PROPS/AppInfo.xml.erb");
+      content => template("$AES_CONF_TEMPL/AppInfo.xml.erb");
 
     "/etc":
       ensure  => 'directory',
@@ -179,14 +179,14 @@ class ariba {
     "/etc/httpd/conf.d/ariba.conf":
       mode    => 0777,
       owner   => root,
-      content => template("$ARIBA_INST/properties/ariba.conf.tomcat.proxy.erb"),
-#      content => template("$ARIBA_INST/properties/ariba.conf.tomcat.modjk.erb"),
+      content => template("$AES_CONF_TEMPL/ariba.conf.tomcat.proxy.erb"),
+#      content => template("$AES_CONF_TEMPL/ariba.conf.tomcat.modjk.erb"),
       notify => Class['Apache::Service'];
 
 #    "/etc/httpd/conf.d/workers.properties":
 #      mode    => 0777,
 #      owner   => root,
-#      content => template("$ARIBA_INST/properties/workers.properties.erb");
+#      content => template("$AES_CONF_TEMPL/workers.properties.erb");
 
 #    "/etc/httpd/modules/mod_jk.so":
 #      mode    => 0777,
@@ -252,6 +252,7 @@ class ariba {
       "$ARIBA_CONF/upstream-installer.properties",
       "$ARIBA_CONF/upstream-installer.properties.orig",
       "$ARIBA_CONF/script.table",
+      "$ARIBA_CONF/ParametersFix.table.merge",
     ]
 
   ## using file / absent does not work as it will be reduplicate declaration
