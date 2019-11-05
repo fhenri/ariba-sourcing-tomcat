@@ -22,13 +22,20 @@ ProxyPass /balancer-manager !
 ProxyPass /server-status !
 
 <Proxy balancer://SourcingCluster>
-  BalancerMember ajp://localhost:8009 loadfactor=1 route=buyer1 lbset=0
-#  BalancerMember ajp://localhost:8019 loadfactor=1 route=buyer2 lbset=0
+  BalancerMember ajp://<%= @ARIBA_HOST %>:8009 loadfactor=1 route=asmserver1 lbset=0
+#  BalancerMember ajp://<%= @ARIBA_HOST %>:8019 loadfactor=1 route=asmserver2 lbset=0
 </Proxy>
 
 <Location /Sourcing>
    Allow From All
-   ProxyPass balancer://SourcingCluster/Sourcing stickysession=JSESSIONID lbmethod=byrequests 
+   ProxyPass balancer://SourcingCluster/Sourcing stickysession=JSESSIONID|jsessionid lbmethod=byrequests 
+</Location>
+
+# ASM Aliases
+
+<Location /AribaASM>
+  ExpiresActive On
+  ExpiresDefault "now plus 12 hours"
 </Location>
 
 Alias /AribaASM/ <%= @ARIBA_BASE %>/WebComponents/
@@ -38,3 +45,4 @@ Alias /AribaASM/ <%= @ARIBA_BASE %>/WebComponents/
   Order allow,deny
   Allow from all
 </Directory>
+

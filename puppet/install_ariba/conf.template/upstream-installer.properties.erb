@@ -2,13 +2,13 @@
 WebLogicServerChoice=0
 WebSphereServerChoice=0
 TomcatChoice=1
-APPSERVER_TOMCAT=/opt/tomcat7/asmserver1
-USER_INSTALL_DIR=/home/ariba/Sourcing
+APPSERVER_TOMCAT=/opt/tomcat<%= @TOMCAT_VERSION %>/asmserver1
+USER_INSTALL_DIR=<%= @ARIBA_ROOT %>/Sourcing
 INSTALLER_PROPERTIES_FILE_PATH=<%= @ARIBA_CONF %>/upstream-installer.properties
 Install_Only=false
-domain.directory=/home/ariba/bea/user_projects
-appserver.home=/home/ariba/bea
-bea.home=/home/ariba/bea
+domain.directory=<%= @ARIBA_ROOT %>/bea/user_projects
+appserver.home=<%= @ARIBA_ROOT %>/bea
+bea.home=<%= @ARIBA_ROOT %>/bea
 admin.port=7001
 # j2eesetup always creates user, but weblogic exists by default
 # TODO: why isnt user=system defaulted?
@@ -22,6 +22,7 @@ CNCSharedSecret=tool
 
 # devprops
 oracle.jdbc.driver=<%= @AES_INST_UPSTREAM %>/ojdbc5.jar
+
 
 # custprops
 domain=Sourcing
@@ -40,11 +41,11 @@ sourcing.configure.customize.webserverport=80
 sourcing.configure.customize.webserverhostname=<%= @ARIBA_HOST %>
 sourcing.configure.freshconfig=true
 sourcing.configure.aribadbvalidateconnection=false
-sourcing.server.home=/home/ariba/Sourcing/Server
-sourcing.web.home=/home/ariba/Sourcing/WebComponents
-sourcing.home=/home/ariba/Sourcing
-sourcing.server.home=/home/ariba/Sourcing/Server
-sourcing.web.home=/home/ariba/Sourcing/WebComponents
+sourcing.server.home=<%= @ARIBA_ROOT %>/Sourcing/Server
+sourcing.web.home=<%= @ARIBA_ROOT %>/Sourcing/WebComponents
+sourcing.home=<%= @ARIBA_ROOT %>/Sourcing
+sourcing.server.home=<%= @ARIBA_ROOT %>/Sourcing/Server
+sourcing.web.home=<%= @ARIBA_ROOT %>/Sourcing/WebComponents
 sourcing.configure.customize.virtualdir=AribaASM
 
 Application.Base.Data.DefaultLanguage=English
@@ -56,12 +57,14 @@ System.Base.DefaultLocale=en_US
 System.Base.InstanceName=ACM
 
 // the following 2 are not set
-System.Base.ASMShared="/home/ariba/Shared"
-System.Base.Doc="/home/ariba/Sourcing/WebComponents"
+System.Base.ASMShared="<%= @ARIBA_ROOT %>/Shared"
+System.Base.Doc="<%= @ARIBA_ROOT %>/Sourcing/Server/DocRoot"
 
 System.Base.SMTPServerNameList=localhost
 System.Base.Data.BaseCurrency=EUR
 System.Base.Data.ReportingCurrency=EUR
+
+System.Base.Modules = ( Basic, Admin, Collaborate, Sourcing, Analytics );
 
 // the following 4 are not set
 System.Debug.SMTPAddressRedirect="ariba@<%= @ARIBA_HOST %>"

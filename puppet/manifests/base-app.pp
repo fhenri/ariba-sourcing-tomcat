@@ -1,4 +1,4 @@
-$ARIBA_HOST     = hiera('ariba_hostname')
+  $ARIBA_HOST     = hiera('ariba_hostname')
 $ARIBA_DB_HOST  = hiera('db_hostname')
 $ARIBA_DB_IP    = hiera('host_db_address')
 $ARIBA_VERSION  = hiera('ariba_version')
@@ -244,6 +244,16 @@ class ariba {
       ],
       user    => "$ARIBA_USER";
       # update in port number still need to be done as it will put default port
+
+    "enable_features_all" :
+      command => "$ARIBA_SERVER/bin/enablefeatures all",
+      cwd     => "$ARIBA_SERVER",
+      timeout => 0,
+      returns => [0, 1],
+      require => [
+        Exec['install_ariba']
+      ],
+      user    => "$ARIBA_USER";
   }
 
   ## clean files so we can rerun the install
