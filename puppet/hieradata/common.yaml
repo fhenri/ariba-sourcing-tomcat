@@ -7,6 +7,6 @@ db_hostname:      "asmtomcat.db"
 ariba_user:       "ariba"
 ariba_hostname:   "asmtomcat.local"
 ariba_version:    "9r2"
-ariba_sp:         "sourcing_9.2_sp18.jar"
+ariba_sp:         "sourcing_9.2_sp27.jar"
 
 tomcat_version:   "tomcat8"
