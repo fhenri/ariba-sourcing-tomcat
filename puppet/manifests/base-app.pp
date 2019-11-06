@@ -1,17 +1,18 @@
-  $ARIBA_HOST     = hiera('ariba_hostname')
+$ARIBA_HOST     = hiera('ariba_hostname')
 $ARIBA_DB_HOST  = hiera('db_hostname')
 $ARIBA_DB_IP    = hiera('host_db_address')
 $ARIBA_VERSION  = hiera('ariba_version')
 $ARIBA_SP       = hiera('ariba_sp')
 $ARIBA_USER     = hiera('ariba_user')
 
-$TOMCAT_VERSION = hiera('tomcat_version')
-
 $ARIBA_ROOT        = "/home/$ARIBA_USER"
 $ARIBA_INST        = "$ARIBA_ROOT/install_sources"
 $ARIBA_CONF        = "$ARIBA_INST/conf"
 $ARIBA_BASE        = "$ARIBA_ROOT/Sourcing"
 $ARIBA_SERVER      = "$ARIBA_BASE/Server"
+
+$TOMCAT_VERSION = hiera('tomcat_version')
+$TOMCAT_ROOT    = "$ARIBA_ROOT/$TOMCAT_VERSION"
 
 $AES_INST_UPSTREAM = "$ARIBA_INST/Upstream-$ARIBA_VERSION"
 $AES_CONF_TEMPL    = "$ARIBA_INST/conf.template"
@@ -40,18 +41,23 @@ class tomcatapp {
   require java
   require tomcat
 
+  File {
+    ensure  => 'directory',
+    owner   => $ARIBA_USER,
+  }
+
   file { 
-    "/opt/$TOMCAT_VERSION":
-      ensure  => 'directory',
-      mode    => 0777;
+    "$ARIBA_ROOT":
+      mode   => 0701;
 
-    "/opt/$TOMCAT_VERSION/asmserver1":
-      ensure  => 'directory',
-      mode    => 0777;
+    "$TOMCAT_ROOT":
+      mode    => 0755;
 
-    "/opt/$TOMCAT_VERSION/asmserver2":
-      ensure  => 'directory',
-      mode    => 0777;
+    "$TOMCAT_ROOT/asmserver1":
+      mode    => 0755;
+
+    "$TOMCAT_ROOT/asmserver2":
+      mode    => 0755;
   }
 
   if $TOMCAT_VERSION == 'tomcat7' {
@@ -66,21 +72,21 @@ class tomcatapp {
 
   tomcat::instance { "$TOMCAT_VERSION-asmserver1":
     install_from_source => true,
-    catalina_base       => "/opt/$TOMCAT_VERSION/asmserver1",
-    catalina_home       => "/opt/$TOMCAT_VERSION/asmserver1",
+    catalina_base       => "$TOMCAT_ROOT/asmserver1",
+    catalina_home       => "$TOMCAT_ROOT/asmserver1",
     source_url          => "$sourceURL",
     require             => [
-      File["/opt/$TOMCAT_VERSION/asmserver1"]
+      File["$TOMCAT_ROOT/asmserver1"]
     ]
   }
 
   tomcat::instance { "$TOMCAT_VERSION-asmserver2":
     install_from_source => true,
-    catalina_base       => "/opt/$TOMCAT_VERSION/asmserver2",
-    catalina_home       => "/opt/$TOMCAT_VERSION/asmserver2",
+    catalina_base       => "$TOMCAT_ROOT/asmserver2",
+    catalina_home       => "$TOMCAT_ROOT/asmserver2",
     source_url          => "$sourceURL",
     require             => [
-      File["/opt/$TOMCAT_VERSION/asmserver2"]
+      File["$TOMCAT_ROOT/asmserver2"]
     ]
   }
 }
@@ -121,10 +127,6 @@ class ariba {
   }
 
   file {
-    "$ARIBA_ROOT":
-      ensure => "directory",
-      mode   => 0701; 
-
     "$ARIBA_CONF":
       ensure => "directory";
 
@@ -206,7 +208,7 @@ class ariba {
 
     "install_ariba" :
       environment => ["INSTALL_DIR=$ARIBA_INST"],
-      command => "$ARIBA_INST/install-ariba.sh aes. $ARIBA_VERSION $ARIBA_SP",
+      command => "$ARIBA_INST/install-ariba.sh aes. $ARIBA_VERSION $ARIBA_SP $TOMCAT_VERSION",
       cwd     => "$ARIBA_INST",
       timeout => 0,
       returns => [0, 1],
@@ -222,38 +224,38 @@ class ariba {
       creates => "$ARIBA_BASE",
       user    => "$ARIBA_USER";
 
-    "deploy_tomcat_asmserver1" :
-      environment => ["CATALINA_HOME=/opt/$TOMCAT_VERSION/asmserver1"],
-      command => "$ARIBA_SERVER/bin/certifyTomcatMigration -dsrm && $ARIBA_SERVER/bin/certifyTomcatMigration -j2ee tomcat",
-      cwd     => "$ARIBA_SERVER",
-      timeout => 0,
-      returns => [0, 1],
-      require => [
-        Exec['install_ariba']
-      ],
-      user    => "$ARIBA_USER";
+#    "deploy_tomcat_asmserver1" :
+#      environment => ["CATALINA_HOME=$TOMCAT_ROOT/asmserver1"],
+#      command => "$ARIBA_SERVER/bin/certifyTomcatMigration -dsrm && $ARIBA_SERVER/bin/certifyTomcatMigration -j2ee tomcat",
+#      cwd     => "$ARIBA_SERVER",
+#      timeout => 0,
+#      returns => [0, 1],
+#      require => [
+#        Exec['install_ariba']
+#      ],
+#      user    => "$ARIBA_USER";
 
-    "deploy_tomcat_asmserver2" :
-      environment => ["CATALINA_HOME=/opt/$TOMCAT_VERSION/asmserver2"],
-      command => "$ARIBA_SERVER/bin/certifyTomcatMigration -dsrm  && $ARIBA_SERVER/bin/certifyTomcatMigration -j2ee tomcat",
-      cwd     => "$ARIBA_SERVER",
-      timeout => 0,
-      returns => [0, 1],
-      require => [
-        Exec['install_ariba']
-      ],
-      user    => "$ARIBA_USER";
+#    "deploy_tomcat_asmserver2" :
+#      environment => ["CATALINA_HOME=$TOMCAT_ROOT/asmserver2"],
+#      command => "$ARIBA_SERVER/bin/certifyTomcatMigration -dsrm  && $ARIBA_SERVER/bin/certifyTomcatMigration -j2ee tomcat",
+#      cwd     => "$ARIBA_SERVER",
+#      timeout => 0,
+#      returns => [0, 1],
+#      require => [
+#        Exec['install_ariba']
+#      ],
+#      user    => "$ARIBA_USER";
       # update in port number still need to be done as it will put default port
 
-    "enable_features_all" :
-      command => "$ARIBA_SERVER/bin/enablefeatures all",
-      cwd     => "$ARIBA_SERVER",
-      timeout => 0,
-      returns => [0, 1],
-      require => [
-        Exec['install_ariba']
-      ],
-      user    => "$ARIBA_USER";
+#    "enable_features_all" :
+#      command => "$ARIBA_SERVER/bin/enablefeatures all",
+#      cwd     => "$ARIBA_SERVER",
+#      timeout => 0,
+#      returns => [0, 1],
+#      require => [
+#        Exec['install_ariba']
+#      ],
+#      user    => "$ARIBA_USER";
   }
 
   ## clean files so we can rerun the install

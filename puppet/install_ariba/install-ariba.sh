@@ -37,7 +37,8 @@ EOF
 default_phases=aes
 PHASES="${1:-$default_phases}"
 ARIBA_VERSION="$2"
-ARG="$3"
+SERVICE_PACK="$3"
+TOMCAT_VERSION="${4:-tomcat8}"
 
 #--- config --------------------------------------------------------------------
 PHASE_INDENT="  "
@@ -50,7 +51,8 @@ LOGDIR="${LOGDIR:-/home/ariba/logs}"
 INST_LOGFILE=$LOGDIR/install-$(date_format)-$PHASES.log
 SCP_OPTS="${SCP_OTPS:--oPasswordAuthentication=no}"
 
-INSTALL_DIR=${INSTALL_DIR:-/home/ariba/install_sources}
+ARIBA_ROOT=${ARIBA_ROOT:-/home/ariba}
+INSTALL_DIR=${INSTALL_DIR:-$ARIBA_ROOT/install_sources}
 AES_INSTALL_DIR=${AES_INSTALL_DIR:-$INSTALL_DIR/Upstream-$ARIBA_VERSION}
 AES_CDIMAGE_DIR=${AES_CDIMAGE_DIR:-$AES_INSTALL_DIR/Disk1/InstData}
 AES_CONF=${AES_CONF:-$INSTALL_DIR/conf}
@@ -58,11 +60,12 @@ AES_CONF=${AES_CONF:-$INSTALL_DIR/conf}
 AES_INST_PROPS=${AES_INST_PROPS:-$AES_CONF/upstream-installer.properties}
 AES_SP_INST_PROPS=${AES_SP_INST_PROPS:-$AES_CONF/sp-upstream-installer.properties}
 
-ARIBA_ROOT=${ARIBA_ROOT:-/home/ariba}
-BEA_HOME=$ARIBA_ROOT/bea
-DEPOT_ROOT=${DEPOT_ROOT:-$ARIBA_ROOT/Depot}
 AES_SERVER_HOME=${AES_SERVER_HOME:-$ARIBA_ROOT/Sourcing/Server}
 AES_WC_HOME=${AES_WC_HOME:-$ARIBA_ROOT/Sourcing/WebComponents}
+
+DEPOT_ROOT=${DEPOT_ROOT:-$ARIBA_ROOT/Depot}
+
+TOMCAT_HOME=${TOMCAT_HOME:-$ARIBA_ROOT/$TOMCAT_VERSION}
 
 export LAX_DEBUG=0                                                              # enable installshield debug
 set -o pipefail                                                                 # return first pipe failure
@@ -232,8 +235,25 @@ function phase_aes_ptable() {
     rm $AES_SERVER_HOME/config/ParametersFix.table.merge
 }
 
+function phase_aes_enablefeatures() {
+    cd $AES_SERVER_HOME 
+    run_cmd_err bin/enablefeatures all
+}
+
+function phase_aes_tomcat_node1() {
+    cd $AES_SERVER_HOME 
+    export CATALINA_HOME=$TOMCAT_HOME/asmserver1
+    run_cmd_err bin/certifyTomcatMigration -dsrm  && bin/certifyTomcatMigration -j2ee tomcat
+}
+
+function phase_aes_tomcat_node2() {
+    cd $AES_SERVER_HOME 
+    export CATALINA_HOME=$TOMCAT_HOME/asmserver2
+    run_cmd_err bin/certifyTomcatMigration -dsrm  && bin/certifyTomcatMigration -j2ee tomcat
+}
+
 #--- main function -------------------------------------------------------------
-jarfile="$ARG"
+jarfile="$SERVICE_PACK"
 spname="${jarfile%.jar}"
 
 function main() {
@@ -247,6 +267,9 @@ function main() {
     check_phase aes.sp.udt.wc "Applying Ariba Sourcing SP $spname WebComponents UDT" "$spname-udt-wc" || return $? 
     check_phase aes.cfg.fixsp "Fixing install.sp for Ariba Sourcing" || return $? 
     check_phase aes.cfg.recfg "Configuring Ariba Sourcing" "sourcing-reconfig" || return $?
+    check_phase aes.enablefeatures "Enable All Features for Ariba Sourcing" || return $?
+    check_phase aes.tomcat.node1 "Certify Tomcat Migration for node1" || return $?
+    check_phase aes.tomcat.node2 "Certify Tomcat Migration for node2" || return $?
     check_phase aes.ptable "Applying custom params" || return $?
     check_phase aes.kill "Killing leftover processes" || return $? 
 }
