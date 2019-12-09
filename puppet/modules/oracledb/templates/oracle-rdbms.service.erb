@@ -1,0 +1,16 @@
+# Invoking Oracle scripts to start/shutdown Instances defined in /etc/oratab
+# and starts Listener
+
+[Unit]
+Description=Oracle Database(s) and Listener
+Requires=network.target
+
+[Service]
+Type=forking
+Restart=no
+ExecStart=<%= @ORACLE_HOME %>/bin/dbstart <%= @ORACLE_HOME %>
+ExecStop=<%= @ORACLE_HOME %>/bin/dbshut <%= @ORACLE_HOME %>
+User=<%= @ORACLE_USER %>
+
+[Install]
+WantedBy=multi-user.target

@@ -8,21 +8,23 @@ class oracle::server (
 ) {
 
   # Derived parameters - do not change
-  $ORACLE_USER        = "$oracle_user"    
-  $DBA_GROUP          = "$dba_group" 
+  $ORACLE_USER        = "$oracle_user"
+  $DBA_GROUP          = "$dba_group"
   $SID                = "$sid"
   $ORACLE_ROOT        = "$oracle_root"
   $PASSWORD           = "$password"
   $ORACLE_BASE        = "$ORACLE_ROOT/app/$ORACLE_USER"
-  $ORACLE_HOME        = "$ORACLE_BASE/product/11.2.0/dbhome_1" 
+  $ORACLE_HOME        = "$ORACLE_BASE/product/12.2.0/dbhome_1" 
   $DATA_LOCATION      = "$ORACLE_BASE/oradata"
   $INVENTORY_LOCATION = "$ORACLE_ROOT/app/oraInventory"
+  $ORACLE_HOSTNAME    = "$host_name"
 
   package {
-    ['oracle-rdbms-server-11gR2-preinstall','unzip', 'xorg-x11-apps', 'libaio', 'glibc', 'compat-libstdc++-33','elfutils-libelf-devel', 'libaio-devel', 'libgcc', 'libstdc++',  'unixODBC-devel', 'ksh']:
-      ensure => installed;
+    ['binutils', 'compat-libcap1', 'compat-libstdc++-33', 'elfutils-libelf', 'elfutils-libelf-devel', 'gcc', 'gcc-c++', 'glibc', 'glibc-common', 'glibc-devel', 'glibc-headers', 'ksh', 'libaio', 'libaio-devel', 'libgcc', 'libstdc++', 'libstdc++-devel', 'make', 'libXext', 'libXtst', 'libX11', 'libXau', 'libxcb', 'libXi', 'sysstat', 'unixODBC', 'unixODBC-devel']:
+      ensure => installed,
+      notify => Exec['install-oracle'];
   }
-  
+
   group{ 
     ["$DBA_GROUP", 'oinstall'] :
       ensure => present;
@@ -40,10 +42,24 @@ class oracle::server (
   }
 
   file {
+    "/etc/sysctl.conf":
+      owner   => root,
+      mode    => 0644,
+      content => template("oracledb/etc-sysctl.conf.erb");
+
+    "/etc/security/limits.conf":
+      owner   => root,
+      mode    => 0644,
+      content => template("oracledb/etc-security-limits.conf.erb");
+
     "/etc/profile.d/ora.sh":
       mode    => 0777,
       content => template("oracledb/ora.sh.erb");
 
+    "/etc/systemd/system/oracle-rdbms.service":
+      mode    => 0777,
+      content => template("oracledb/oracle-rdbms.service.erb");
+    
     ["$ORACLE_ROOT", "$ORACLE_ROOT/tmp"]:
       ensure  => "directory",
       owner   => "$ORACLE_USER",
@@ -51,12 +67,13 @@ class oracle::server (
       require => Group["$DBA_GROUP"]; 
 
     "$ORACLE_ROOT/tmp/db_install_my.rsp":
+      owner   => "$ORACLE_USER",
       content => template("oracledb/db_install_my.erb");
 
-    "/etc/init.d/oracle":
-      mode    => 0777,
-      content => template("oracledb/oracle.erb");
-    
+    "$ORACLE_ROOT/tmp/dbca.rsp":
+      owner   => "$ORACLE_USER",
+      content => template("oracledb/dbca.rsp.erb");
+
     "$ORACLE_ROOT/tmp/database":
       ensure  => 'directory',
       source  => '/vagrant/puppet/modules/oracledb/files/database',
@@ -65,56 +82,65 @@ class oracle::server (
       group   => "$DBA_GROUP", 
       require => Group["$DBA_GROUP"],
       mode    => '0755';
-
-    "$ORACLE_HOME/ctx/data/":
-      ensure  => 'directory',
-      source  => "/vagrant/puppet/modules/oracledb/files/examples/ctx/data",
-      recurse => 'remote',
-      purge   => true,
-      replace => "no",
-      owner   => "$ORACLE_USER",
-      require => [
-        User["$ORACLE_USER"],
-        Exec['install']
-      ];
   }
 
   exec {
-    "kernelprops":
-      command => "/vagrant/puppet/modules/oracledb/files/CVU_11.2.0.1.0_vagrant/runfixup.sh",
+    "sysctl" :
+      command => "/usr/sbin/sysctl -p",
+      cwd     => "/usr/sbin",
+      require => File['/etc/sysctl.conf'],
       user    => root;
 
-    "install" :
+    "install-oracle" :
       command => "/bin/sh -c '$ORACLE_ROOT/tmp/database/runInstaller -silent -waitforcompletion -ignorePrereq -responseFile $ORACLE_ROOT/tmp/db_install_my.rsp'",
       cwd     => "$ORACLE_ROOT/tmp/database",
       timeout => 0,
       returns => [0, 3],
-      require => File["$ORACLE_ROOT/tmp/database", "$ORACLE_ROOT/tmp/db_install_my.rsp", "$ORACLE_ROOT", '/etc/profile.d/ora.sh'],
+      require => [User["$ORACLE_USER"], File["$ORACLE_ROOT/tmp/database", "$ORACLE_ROOT/tmp/db_install_my.rsp", "$ORACLE_ROOT", '/etc/profile.d/ora.sh']],
       creates => "$ORACLE_BASE",
       user    => "$ORACLE_USER";
 
     "post-install 1":  
       command => "$INVENTORY_LOCATION/orainstRoot.sh",
       user    => root,
-      require => Exec['install'];
+      require => Exec['install-oracle'];
 
     "post-install 2":  
       command => "$ORACLE_HOME/root.sh",
       user    => root,
       require => Exec['post-install 1'];
 
-    "autostart":  
-      command => "/sbin/chkconfig --level 345 oracle on",
-      user    => root,
-      require => [Exec['post-install 2'], File['/etc/init.d/oracle', '/etc/profile.d/ora.sh']];
+    "create-db" :
+      command => "/bin/sh -c 'source /etc/profile.d/ora.sh && $ORACLE_HOME/bin/dbca -silent -createDatabase -responseFile $ORACLE_ROOT/tmp/dbca.rsp'",
+      cwd     => "$ORACLE_HOME/bin",
+      timeout => 0,
+      returns => [0, 3, 255],
+      require => Exec['start-db', "reload-init"],
+      creates => "$DATA_LOCATION",
+      user    => "$ORACLE_USER";
 
-    "autostart 2":  
-      command => "/bin/sed -i 's/:N$/:Y/g' /etc/oratab",
+    "start-db":  
+      command => "/usr/bin/systemctl start oracle-rdbms",
+      user    => root,
+      require => [Exec['post-install 2'], File['/etc/systemd/system/oracle-rdbms.service']];
+
+    "autostart":  
+      command => "/usr/bin/systemctl daemon-reload && /usr/bin/systemctl enable oracle-rdbms",
+      user    => root,
+      require => [Exec['post-install 2'], File['/etc/systemd/system/oracle-rdbms.service']];
+
+    #https://unix.stackexchange.com/questions/181782/restarting-init-without-restarting-the-system
+    "reload-init":  
+      command => "/usr/sbin/telinit u",
       user    => root,
       require => Exec['autostart'];
+
+    "autostart-2":  
+      command => "/bin/sed -i 's/:N$/:Y/g' /etc/oratab",
+      user    => root,
+      require => Exec['create-db'];
   }
 }
-
 
 class oracle::swap {
   exec {

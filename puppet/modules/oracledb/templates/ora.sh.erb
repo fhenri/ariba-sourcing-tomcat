@@ -1,8 +1,10 @@
 export ORACLE_HOME=<%= @ORACLE_HOME %>
 export ORACLE_HOME_LISTNER=$ORACLE_HOME
 export PATH=$PATH:$ORACLE_HOME/bin
-export ORACLE_HOSTNAME= <%= @HOST_NAME %>
+export ORACLE_HOSTNAME=<%= @ORACLE_HOSTNAME %>
+export ORACLE_BASE=$ORACLE_HOME
 
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib;
-export ORACLE_SID=<%= @SID %>
+export CLASSPATH=$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib;
 
+export ORACLE_SID=<%= @SID %>

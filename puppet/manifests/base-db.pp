@@ -2,34 +2,6 @@ Package {
   allow_virtual => true,
 }
 
-# those are necessary to run the install of oracle-rdbms-server-11gR2-preinstall
-#"sudo wget https://public-yum.oracle.com/public-yum-ol6.repo -P /etc/yum.repos.d --no-check-certificate"
-#"sudo wget https://public-yum.oracle.com/RPM-GPG-KEY-oracle-ol6 -O /etc/pki/rpm-gpg/RPM-GPG-KEY-oracle --no-check-certificate"
-
-class yum {
-
-  $oracle_repo = "public-yum.oracle.com"
-  #yumrepo {
-  #  "public-yum.oracle.com":
-  #    descr    => "Oracle Linux 6",
-  #    baseurl  => "https://$oracle_repo/public-yum-ol6.repo",
-  #    gpgkey   => "https://$oracle_repo/RPM-GPG-KEY-oracle-ol6",
-  #    sslverify=> "false",
-  #    gpgcheck => "1",
-  #    enabled  => "1";
-  #}
-
-  exec {'yum oracle':
-    command => "/usr/bin/wget https://$oracle_repo/public-yum-ol7.repo -P /etc/yum.repos.d --no-check-certificate",
-    creates => "/etc/yum.repos.d/public-yum-ol7.repo",
-  }
-
-  exec {'GPG Key':
-    command => "/usr/bin/wget https://$oracle_repo/RPM-GPG-KEY-oracle-ol7 -O /etc/pki/rpm-gpg/RPM-GPG-KEY-oracle --no-check-certificate",
-    creates => "/etc/pki/rpm-gpg/RPM-GPG-KEY-oracle",
-  }
-}
-
 class { 'java' : 
   distribution  => 'jdk',
   package       => 'java-1.8.0-openjdk-devel'
@@ -37,7 +9,6 @@ class { 'java' :
 
 class oracledb {
   require java
-  require yum
   require oracle::swap
 
   class { "oracle::server" :
@@ -66,7 +37,7 @@ class oracledb {
 
   exec {
     'run-script':
-      command => "bash -c 'source /etc/profile.d/ora.sh && sqlplus system/oracle@aribadb @aribadb.sql'",
+      command => "bash -c 'source /etc/profile.d/ora.sh && sqlplus system/oracle @aribadb.sql'",
       cwd     => '/home/oracle',
       path    => '/usr/bin:/bin:/oracle/app/oracle/product/11.2.0/dbhome_1/bin',
       user    => oracle,
