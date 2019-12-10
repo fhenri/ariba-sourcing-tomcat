@@ -35,7 +35,7 @@ class oracle::server (
       groups  => "$DBA_GROUP",
       gid     => 'oinstall',
       #password => "$PASSWORD",
-      password    => '$1$0yXEC7u6$eLTh8zwo7qw3ZEEyPoS/B/',
+      password => '$1$0yXEC7u6$eLTh8zwo7qw3ZEEyPoS/B/',
       ensure  => present,
       shell   => "/bin/bash",
       require => Group["$DBA_GROUP", 'oinstall']
@@ -152,7 +152,7 @@ class oracle::swap {
   exec {
     "create swapfile":
       # keep it the same as RAM
-      command => "fallocate -l 3G /swapfile",
+      command => "dd if=/dev/zero of=/swapfile bs=3M count=1024",
       path    => ["/usr/bin/","/usr/sbin/","/bin"],
       user    => root,
       creates => "/swapfile";
