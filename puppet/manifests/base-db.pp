@@ -39,7 +39,7 @@ class oracledb {
     'run-script':
       command => "bash -c 'source /etc/profile.d/ora.sh && sqlplus system/oracle @aribadb.sql'",
       cwd     => '/home/oracle',
-      path    => '/usr/bin:/bin:/oracle/app/oracle/product/11.2.0/dbhome_1/bin',
+      path    => '/usr/bin:/bin:/oracle/app/oracle/product/12.2.0/dbhome_1/bin',
       user    => oracle,
       logoutput => on_failure,
       require => File["/home/oracle/aribadb.sql"];

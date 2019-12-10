@@ -21,8 +21,8 @@ class oracle::server (
 
   package {
     ['binutils', 'compat-libcap1', 'compat-libstdc++-33', 'elfutils-libelf', 'elfutils-libelf-devel', 'gcc', 'gcc-c++', 'glibc', 'glibc-common', 'glibc-devel', 'glibc-headers', 'ksh', 'libaio', 'libaio-devel', 'libgcc', 'libstdc++', 'libstdc++-devel', 'make', 'libXext', 'libXtst', 'libX11', 'libXau', 'libxcb', 'libXi', 'sysstat', 'unixODBC', 'unixODBC-devel']:
-      ensure => installed,
-      notify => Exec['install-oracle'];
+          ensure => installed,
+          notify => Exec['install-oracle'];
   }
 
   group{ 
@@ -85,57 +85,63 @@ class oracle::server (
   }
 
   exec {
-    "sysctl" :
+    "sysctl":
       command => "/usr/sbin/sysctl -p",
       cwd     => "/usr/sbin",
       require => File['/etc/sysctl.conf'],
       user    => root;
 
-    "install-oracle" :
+    #https://unix.stackexchange.com/questions/181782/restarting-init-without-restarting-the-system
+    "reload-init":
+      command => "telinit u",
+      path    => ["/usr/bin/","/usr/sbin/","/bin"],
+      user    => root,
+      require => Exec['sysctl'];
+
+    "pre-install-1":
+      command => "/bin/sed -i 's/SELINUX=permissive$/SELINUX=disabled/g' /etc/selinux/config",
+      user    => root,
+      require => Exec['reload-init'];
+
+    "install-oracle":
       command => "/bin/sh -c '$ORACLE_ROOT/tmp/database/runInstaller -silent -waitforcompletion -ignorePrereq -responseFile $ORACLE_ROOT/tmp/db_install_my.rsp'",
       cwd     => "$ORACLE_ROOT/tmp/database",
       timeout => 0,
       returns => [0, 3],
-      require => [User["$ORACLE_USER"], File["$ORACLE_ROOT/tmp/database", "$ORACLE_ROOT/tmp/db_install_my.rsp", "$ORACLE_ROOT", '/etc/profile.d/ora.sh']],
+      require => [User["$ORACLE_USER"], File["$ORACLE_ROOT/tmp/database", "$ORACLE_ROOT/tmp/db_install_my.rsp", "$ORACLE_ROOT", '/etc/profile.d/ora.sh'], Exec['pre-install-1']],
       creates => "$ORACLE_BASE",
       user    => "$ORACLE_USER";
 
-    "post-install 1":  
+    "post-install 1":
       command => "$INVENTORY_LOCATION/orainstRoot.sh",
       user    => root,
       require => Exec['install-oracle'];
 
-    "post-install 2":  
+    "post-install 2":
       command => "$ORACLE_HOME/root.sh",
       user    => root,
       require => Exec['post-install 1'];
 
-    "create-db" :
-      command => "/bin/sh -c 'source /etc/profile.d/ora.sh && $ORACLE_HOME/bin/dbca -silent -createDatabase -responseFile $ORACLE_ROOT/tmp/dbca.rsp'",
-      cwd     => "$ORACLE_HOME/bin",
-      timeout => 0,
-      returns => [0, 3, 255],
-      require => Exec['start-db', "reload-init"],
-      creates => "$DATA_LOCATION",
-      user    => "$ORACLE_USER";
-
-    "start-db":  
+    "start-db":
       command => "/usr/bin/systemctl start oracle-rdbms",
       user    => root,
       require => [Exec['post-install 2'], File['/etc/systemd/system/oracle-rdbms.service']];
 
-    "autostart":  
-      command => "/usr/bin/systemctl daemon-reload && /usr/bin/systemctl enable oracle-rdbms",
+    "autostart":
+      command => "/usr/bin/systemctl daemon-reexec && /usr/bin/systemctl enable oracle-rdbms",
       user    => root,
       require => [Exec['post-install 2'], File['/etc/systemd/system/oracle-rdbms.service']];
 
-    #https://unix.stackexchange.com/questions/181782/restarting-init-without-restarting-the-system
-    "reload-init":  
-      command => "/usr/sbin/telinit u",
-      user    => root,
-      require => Exec['autostart'];
+    "create-db":
+      command => "/bin/sh -c 'source /etc/profile.d/ora.sh && $ORACLE_HOME/bin/dbca -silent -createDatabase -responseFile $ORACLE_ROOT/tmp/dbca.rsp'",
+      cwd     => "$ORACLE_HOME/bin",
+      timeout => 0,
+      returns => [0, 3],
+      require => Exec['reload-init', 'start-db', 'autostart'],
+      creates => "$DATA_LOCATION",
+      user    => "$ORACLE_USER";
 
-    "autostart-2":  
+    "autostart-2":
       command => "/bin/sed -i 's/:N$/:Y/g' /etc/oratab",
       user    => root,
       require => Exec['create-db'];
@@ -145,24 +151,28 @@ class oracle::server (
 class oracle::swap {
   exec {
     "create swapfile":
-      # Needs to be 2 times the memory
-      command => "/bin/dd if=/dev/zero of=/swapfile bs=2M count=1024",
-      user => root,
+      # keep it the same as RAM
+      command => "fallocate -l 3G /swapfile",
+      path    => ["/usr/bin/","/usr/sbin/","/bin"],
+      user    => root,
       creates => "/swapfile";
     "set up swapfile":
-      command => "/sbin/mkswap /swapfile",
+      command => "mkswap /swapfile",
+      path    => ["/usr/bin/","/usr/sbin/","/bin"],
       require => Exec["create swapfile"],
-      user => root,
-      unless => "/usr/bin/file /swapfile | grep 'swap file' 2>/dev/null";
+      user    => root,
+      unless  => "/usr/bin/file /swapfile | grep 'swap file' 2>/dev/null";
     "enable swapfile":
-      command => "/sbin/swapon /swapfile",
+      command => "swapon /swapfile",
+      path    => ["/usr/bin/","/usr/sbin/","/bin"],
       require => Exec["set up swapfile"],
-      user => root,
-      unless => "/bin/cat /proc/swaps | grep '^/swapfile' 2>/dev/null";
+      user    => root,
+      unless  => "/bin/cat /proc/swaps | grep '^/swapfile' 2>/dev/null";
     "add swapfile entry to fstab":
-      command => "/bin/echo >>/etc/fstab /swapfile swap swap defaults 0 0",
-      user => root,
-      unless => "/bin/grep '^/swapfile' /etc/fstab 2>/dev/null";
+      command => "echo >>/etc/fstab /swapfile swap swap defaults 0 0",
+      path    => ["/usr/bin/","/usr/sbin/","/bin"],
+      user    => root,
+      unless  => "/bin/grep '^/swapfile' /etc/fstab 2>/dev/null";
   }
 
   file {

@@ -21,7 +21,7 @@ CNCIdentity=
 CNCSharedSecret=tool
 
 # devprops
-oracle.jdbc.driver=<%= @AES_INST_UPSTREAM %>/ojdbc8.jar
+oracle.jdbc.driver=<%= @AES_INST_UPSTREAM %>/ojdbc6.jar
 
 
 # custprops
@@ -65,6 +65,7 @@ System.Base.Data.BaseCurrency=EUR
 System.Base.Data.ReportingCurrency=EUR
 
 System.Base.Modules = ( Basic, Admin, Collaborate, Sourcing, Analytics );
+System.Base.ResourceURL="/AribaASM"
 
 // the following 4 are not set
 System.Debug.SMTPAddressRedirect="ariba@<%= @ARIBA_HOST %>"
